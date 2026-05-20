@@ -102,11 +102,14 @@ input:focus{border-color:#00a8ff;box-shadow:0 0 12px rgba(0,168,255,0.3)}
 const $ = id => document.getElementById(id);
 const bg = $('bg'), bctx = bg.getContext('2d'), hud = $('hud'), count = $('count'), hint = $('hint'), spheresEl = $('spheres');
 const COLORS = ['#00a8ff', '#ff5577', '#ffd84d', '#5eff9a'];
-const R = 18, GRAVITY = 1400, BOOST = 260, VY_MAX = 750;
+// Physics (world units; +worldY = up). Each click pushes vy upward; gravity always drags toward 0.
+const R = 18, GRAVITY = 380, BOOST = 55, VY_MAX = 650;
+const GROUND_PAD = 60, HEAD_PAD = 90;
 let stars = [], W = 0, H = 0, t = 0, running = false;
+let viewWorldY = 0, prevView = 0; // camera "bottom of view" in world units
 let mode = localStorage.getItem('cb_mode') || 'mouse';
 let view = 'menu', isMP = false, myId = null, ws = null;
-const players = new Map(); // id → {id,name,color,slot,score,y,vy,x,el,scrEl,hitT,isMe}
+const players = new Map(); // id → {id,name,color,slot,score,worldY,vy,x,el,scrEl,hitT,isMe}
 
 function resize() {
   W = bg.width = innerWidth; H = bg.height = innerHeight;
@@ -117,17 +120,31 @@ addEventListener('resize', resize); resize();
 
 function sphereX(slot) { return isMP ? W * (slot * 2 + 1) / 8 : W / 2; }
 
+function updateCamera() {
+  let maxY = 0;
+  for (const p of players.values()) if (p.worldY > maxY) maxY = p.worldY;
+  const target = Math.max(0, maxY - (H - GROUND_PAD - HEAD_PAD));
+  viewWorldY += (target - viewWorldY) * 0.18;
+}
+
 function drawBg(dt) {
-  const me = players.get(myId);
-  const speed = 60 - (me && running ? me.vy * 0.6 : 0);
+  const viewDelta = viewWorldY - prevView; prevView = viewWorldY;
   bctx.fillStyle = 'rgba(2,4,10,0.30)'; bctx.fillRect(0, 0, W, H);
+  // Stars: ambient slow downward drift + parallax based on camera scroll
   for (const s of stars) {
-    s.y += speed * s.d * dt;
-    if (s.y > H + 4) { s.y = -4; s.x = Math.random()*W; }
-    if (s.y < -4)    { s.y = H + 4; s.x = Math.random()*W; }
+    s.y += 26 * s.d * dt + viewDelta * s.d;
+    while (s.y > H + 10) { s.y -= H + 20; s.x = Math.random() * W; }
+    while (s.y < -10)    { s.y += H + 20; s.x = Math.random() * W; }
     s.p += dt * 2;
     bctx.fillStyle = `rgba(150,210,255,${(0.2+0.6*Math.abs(Math.sin(s.p)))*(0.5+s.d*0.5)})`;
     bctx.beginPath(); bctx.arc(s.x, s.y, s.r*(0.4+s.d*0.8), 0, 6.283); bctx.fill();
+  }
+  // Ground line — visible when camera near floor
+  const groundY = H - GROUND_PAD + viewWorldY;
+  if (groundY > -4 && groundY < H + 4) {
+    bctx.strokeStyle = 'rgba(0,168,255,0.35)';
+    bctx.lineWidth = 1.5;
+    bctx.beginPath(); bctx.moveTo(0, groundY); bctx.lineTo(W, groundY); bctx.stroke();
   }
 }
 
@@ -146,30 +163,32 @@ function pulse(p) { if (!p.el) return; p.el.classList.add('hit'); clearTimeout(p
 let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.05); last = now;
-  drawBg(dt);
-  for (const p of players.values()) {
-    if (running) {
-      if (p.isMe) {
-        p.vy += GRAVITY * dt;
-      } else {
-        p.vy += GRAVITY * dt * 0.6; // local fudge between server ticks
-      }
+  if (running) {
+    for (const p of players.values()) {
+      p.vy -= GRAVITY * dt; // gravity always pulls upward velocity down
       if (p.vy > VY_MAX) p.vy = VY_MAX;
       if (p.vy < -VY_MAX) p.vy = -VY_MAX;
-      p.y += p.vy * dt;
-      if (p.y > H - R) { p.y = H - R; if (p.vy > 0) p.vy = 0; }
-      if (p.y < R)     { p.y = R;     if (p.vy < 0) p.vy = 0; }
+      p.worldY += p.vy * dt;
+      if (p.worldY < 0) { p.worldY = 0; if (p.vy < 0) p.vy = 0; }
     }
-    if (p.el) {
-      p.el.style.left = (p.x - R) + 'px';
-      p.el.style.top  = ((p.y || H * 0.6) - R) + 'px';
-      if (p.scrEl) p.scrEl.textContent = p.score;
-    }
-  }
-  if (running) {
     t -= dt;
     if (t <= 0) { t = 0; end(); }
     else $('time').textContent = t.toFixed(1);
+  }
+  updateCamera();
+  drawBg(dt);
+  for (const p of players.values()) {
+    if (!p.el) continue;
+    const sy = H - GROUND_PAD - (p.worldY - viewWorldY);
+    p.el.style.left = (p.x - R) + 'px';
+    if (sy > H - 6) {
+      p.el.style.top = (H - 28) + 'px';
+      p.el.style.opacity = '0.45';
+    } else {
+      p.el.style.top = (sy - R) + 'px';
+      p.el.style.opacity = '1';
+    }
+    if (p.scrEl) p.scrEl.textContent = p.score;
   }
   requestAnimationFrame(loop);
 }
@@ -179,11 +198,12 @@ function localClick() {
   if (!running) return;
   const me = players.get(myId); if (!me) return;
   me.score++;
-  me.vy -= BOOST;
-  if (me.vy < -VY_MAX) me.vy = -VY_MAX;
+  me.vy += BOOST;
+  if (me.vy > VY_MAX) me.vy = VY_MAX;
   pulse(me);
   $('score').textContent = me.score;
-  spawnPop(me.x, me.y - R - 6);
+  const sy = H - GROUND_PAD - (me.worldY - viewWorldY);
+  spawnPop(me.x, sy - R - 6);
 }
 
 addEventListener('pointerdown', e => {
@@ -243,15 +263,16 @@ function updateLobby(room) {
 async function startGame() {
   view = 'playing'; hideAllUI(); setBack(false);
   clearSpheres();
+  viewWorldY = 0; prevView = 0;
   if (!isMP) {
     players.clear();
-    const me = { id:'me', name:($('name').value.trim()||'Player').slice(0,14), color:COLORS[0], slot:0, score:0, y:H*0.65, vy:0, isMe:true };
+    const me = { id:'me', name:($('name').value.trim()||'Player').slice(0,14), color:COLORS[0], slot:0, score:0, worldY:0, vy:0, isMe:true };
     me.x = sphereX(0);
     players.set('me', me); myId = 'me';
     localStorage.setItem('cb_name', me.name);
     localStorage.setItem('cb_mode', mode);
   } else {
-    for (const p of players.values()) { p.score = 0; p.y = H * 0.65; p.vy = 0; p.x = sphereX(p.slot); }
+    for (const p of players.values()) { p.score = 0; p.worldY = 0; p.vy = 0; p.x = sphereX(p.slot); }
   }
   for (const p of players.values()) makeSphereEl(p);
   for (const n of ['3','2','1','GO']) { count.textContent = n; count.style.display = 'block'; await sleep(550); }
@@ -341,7 +362,7 @@ function handleMsg(m) {
   else if (m.type === 'tick')   {
     for (const ps of m.players) {
       const p = players.get(ps.id);
-      if (p && !p.isMe) { p.score = ps.score; p.y += (ps.y - p.y) * 0.4; p.vy = ps.vy || 0; }
+      if (p && !p.isMe) { p.score = ps.score; p.worldY += (ps.y - p.worldY) * 0.4; p.vy = ps.vy || 0; }
     }
   }
   else if (m.type === 'finished') { syncPlayers(m.room); end(); }
@@ -351,7 +372,7 @@ function syncPlayers(room) {
   for (const id of [...players.keys()]) if (!room.players.find(p => p.id === id)) players.delete(id);
   for (const ps of room.players) {
     let p = players.get(ps.id);
-    if (!p) { p = { id: ps.id, score: ps.score || 0, y: H * 0.6, vy: 0, isMe: ps.id === myId }; players.set(ps.id, p); }
+    if (!p) { p = { id: ps.id, score: ps.score || 0, worldY: 0, vy: 0, isMe: ps.id === myId }; players.set(ps.id, p); }
     p.name = ps.name; p.color = ps.color; p.slot = ps.slot; p.x = sphereX(p.slot);
   }
 }
@@ -361,7 +382,7 @@ setInterval(() => {
   if (!isMP || !running || !ws || ws.readyState !== 1) return;
   const now = performance.now(); if (now - lastSent < 70) return; lastSent = now;
   const me = players.get(myId); if (!me) return;
-  ws.send(JSON.stringify({ type: 'state', score: me.score, y: me.y, vy: me.vy }));
+  ws.send(JSON.stringify({ type: 'state', score: me.score, y: me.worldY, vy: me.vy }));
 }, 70);
 
 // --- Wire up ---
