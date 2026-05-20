@@ -42,6 +42,11 @@ input:focus{border-color:#00a8ff;box-shadow:0 0 12px rgba(0,168,255,0.3)}
 .row .mt{font-size:8px;letter-spacing:1px;padding:1px 5px;border-radius:5px;background:rgba(0,168,255,0.15);color:#7ed4ff;text-transform:uppercase;flex-shrink:0}
 .row .mt.space{background:rgba(255,180,80,0.15);color:#ffc070}
 .row .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+.row .code-mini{font-size:10px;letter-spacing:2px;font-weight:bold;color:#00e0ff;background:rgba(0,168,255,0.1);padding:2px 6px;border-radius:6px;flex-shrink:0}
+.row .count{font-size:11px;color:rgba(255,255,255,0.55);flex-shrink:0}
+.join-btn{padding:4px 10px;font-size:10px;font-weight:bold;letter-spacing:1.5px;border:1px solid rgba(0,168,255,0.5);border-radius:10px;background:rgba(0,168,255,0.1);color:#00e0ff;cursor:pointer;flex-shrink:0;font-family:inherit;transition:background .15s}
+.join-btn:hover:not(:disabled){background:rgba(0,168,255,0.3);color:#fff}
+.join-btn:disabled{opacity:0.3;cursor:not-allowed;color:rgba(255,255,255,0.4);border-color:rgba(255,255,255,0.2);background:transparent}
 .empty{color:rgba(255,255,255,0.4);text-align:center;padding:5px;font-size:11px}
 .code-disp{font-size:30px;letter-spacing:10px;font-weight:bold;color:#00e0ff;text-shadow:0 0 14px rgba(0,168,255,0.6);margin:4px 0 12px;padding:8px 12px;background:rgba(0,168,255,0.06);border:1px dashed rgba(0,168,255,0.4);border-radius:12px;text-align:center}
 .status{font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:2px;text-transform:uppercase;margin-top:4px;text-align:center}
@@ -75,12 +80,14 @@ input:focus{border-color:#00a8ff;box-shadow:0 0 12px rgba(0,168,255,0.3)}
   </div>
   <div id="mpMenu" class="hide">
     <h1>MULTIPLAYER</h1>
-    <p class="tag">Create a room and share the code, or join one.</p>
+    <p class="tag">Create a room, join one below, or use a 4-char code.</p>
     <input id="mpName" placeholder="Your name" maxlength="14">
+    <input id="mpRoomName" placeholder="Room name (optional)" maxlength="20">
     <button class="btn" id="createBtn">CREATE ROOM</button>
     <input id="codeInput" class="code" placeholder="CODE" maxlength="4">
-    <button class="btn" id="joinBtn">JOIN ROOM</button>
+    <button class="btn" id="joinBtn">JOIN BY CODE</button>
     <div id="mpError" class="status" style="color:#ff7070;min-height:14px"></div>
+    <div class="panel"><h3>Live Rooms <span id="roomRefreshHint" style="opacity:0.4;font-size:9px;letter-spacing:1px">· auto-refresh</span></h3><div id="roomBrowser"><div class="empty">Loading…</div></div></div>
   </div>
   <div id="lobby" class="hide">
     <h2>ROOM</h2>
@@ -237,6 +244,7 @@ function showMenu() {
   clearSpheres(); players.clear();
   if (ws) { ws.close(); ws = null; }
   isMP = false; running = false; document.body.style.cursor = 'default';
+  stopRoomPoll();
   renderLocalBoard('board');
 }
 function showMpMenu() {
@@ -244,6 +252,7 @@ function showMpMenu() {
   setBack(true);
   $('mpName').value = localStorage.getItem('cb_name') || '';
   $('mpError').textContent = '';
+  startRoomPoll();
 }
 function showLobby(room) {
   view = 'lobby'; hideAllUI(); $('lobby').classList.remove('hide');
@@ -334,24 +343,63 @@ function setMode(m) {
 setMode(mode);
 
 // --- Multiplayer (WebSocket) ---
-const SERVER_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-  ? `ws://${location.hostname}:3000`
-  : 'wss://click-battle.onrender.com';
+// Click Battle is co-hosted on the snake.io Render service at the /cb path.
+// HTTP API: /api/cb/rooms · WS: /cb
+const SERVER_HTTP = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? `http://${location.hostname}:3000`
+  : 'https://snake-io-fzk5.onrender.com';
+const SERVER_WS = SERVER_HTTP.replace(/^http/, 'ws') + '/cb';
 
-function connect(action, code) {
+function connect(action, code, roomName) {
   if (ws) { try { ws.close(); } catch {} ws = null; }
   const name = ($('mpName').value.trim() || 'Player').slice(0, 14);
   localStorage.setItem('cb_name', name);
   $('mpError').textContent = 'Connecting…';
-  try { ws = new WebSocket(SERVER_URL); }
+  try { ws = new WebSocket(SERVER_WS); }
   catch { $('mpError').textContent = 'Server offline — try Solo'; return; }
-  ws.onopen = () => ws.send(JSON.stringify({ type: action, code, name }));
+  ws.onopen = () => ws.send(JSON.stringify({ type: action, code, name, roomName }));
   ws.onmessage = ev => { try { handleMsg(JSON.parse(ev.data)); } catch {} };
   ws.onerror = () => { $('mpError').textContent = 'Server offline — Solo still works!'; };
   ws.onclose = () => {
     if (view === 'mp') $('mpError').textContent = $('mpError').textContent || 'Disconnected';
     if (view === 'lobby' || view === 'playing' || view === 'over') showMpMenu();
   };
+}
+
+// Room browser: poll the server's room list while user is on the multiplayer menu
+let roomPoll = null;
+function startRoomPoll() {
+  stopRoomPoll();
+  refreshRooms();
+  roomPoll = setInterval(refreshRooms, 3000);
+}
+function stopRoomPoll() { if (roomPoll) { clearInterval(roomPoll); roomPoll = null; } }
+
+async function refreshRooms() {
+  const target = $('roomBrowser');
+  if (!target) return;
+  try {
+    const res = await fetch(SERVER_HTTP + '/api/cb/rooms', { cache: 'no-store' });
+    const rooms = await res.json();
+    if (!rooms.length) { target.innerHTML = '<div class="empty">No active rooms — create one above!</div>'; return; }
+    target.innerHTML = rooms.map(r => {
+      const joinable = r.joinable;
+      const stateLbl = r.state === 'lobby' ? '' : r.state === 'playing' ? '· Playing' : r.state === 'countdown' ? '· Starting' : '· Done';
+      return `<div class="row">
+        <span class="name" title="${esc(r.name)}">${esc(r.name)}</span>
+        <span class="code-mini">${r.code}</span>
+        <span class="count">${r.players}/${r.maxPlayers} ${stateLbl}</span>
+        <button class="join-btn" data-code="${r.code}" ${joinable ? '' : 'disabled'}>${joinable ? 'JOIN' : '—'}</button>
+      </div>`;
+    }).join('');
+    for (const btn of target.querySelectorAll('.join-btn')) {
+      btn.addEventListener('click', () => {
+        if (!btn.disabled) { stopRoomPoll(); connect('join', btn.dataset.code); }
+      });
+    }
+  } catch {
+    target.innerHTML = '<div class="empty">Server offline — Solo still works!</div>';
+  }
 }
 
 function handleMsg(m) {
@@ -395,10 +443,14 @@ $('back').addEventListener('click', () => {
   if (view === 'mp') showMenu();
   else if (view === 'lobby' || view === 'over') showMenu();
 });
-$('createBtn').addEventListener('click', () => connect('create'));
+$('createBtn').addEventListener('click', () => {
+  stopRoomPoll();
+  connect('create', null, $('mpRoomName').value.trim());
+});
 $('joinBtn').addEventListener('click', () => {
   const code = $('codeInput').value.trim().toUpperCase();
   if (code.length !== 4) { $('mpError').textContent = 'Code must be 4 characters'; return; }
+  stopRoomPoll();
   connect('join', code);
 });
 $('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('joinBtn').click(); });
