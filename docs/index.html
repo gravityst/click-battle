@@ -9,93 +9,163 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:radial-gradient(circle at top,#091123 0%,#02030a 55%,#03020f 100%);overflow:hidden;font-family:-apple-system,'Segoe UI',sans-serif;color:#f7f7ff;height:100vh;user-select:none;-webkit-user-select:none}
 #bg{position:fixed;inset:0;z-index:0;width:100%;height:100%}
-#sphere{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:20;width:60px;height:60px;border-radius:50%;cursor:pointer;background:radial-gradient(circle at 32% 30%,#dff5ff 0%,#00a8ff 45%,#003a7a 100%);box-shadow:0 0 30px #00a8ff,0 0 60px rgba(0,168,255,0.4),inset -8px -8px 22px rgba(0,0,0,0.45);transition:transform .06s ease-out;display:none}
-#sphere.hit{transform:translate(-50%,-50%) scale(1.25)}
-#ui{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;pointer-events:none;overflow-y:auto}
+.sphere{position:absolute;z-index:20;width:36px;height:36px;border-radius:50%;will-change:transform,left,top;transition:transform .06s ease-out;pointer-events:none}
+.sphere.hit{transform:scale(1.3)}
+.sphere .lbl{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.9);text-shadow:0 1px 4px rgba(0,0,0,0.9);white-space:nowrap;text-align:center;font-weight:600}
+.sphere .scr{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);font-size:13px;font-weight:bold;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.9)}
+#ui{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;pointer-events:none;overflow-y:auto}
 #ui>*{pointer-events:auto}
-h1{font-size:62px;letter-spacing:6px;color:#f8f8ff;text-shadow:0 0 18px #00a8ff,0 0 48px #0066cc;animation:pulse 3s ease-in-out infinite;margin-bottom:6px;text-align:center}
-@keyframes pulse{0%,100%{text-shadow:0 0 20px #00a8ff,0 0 40px #00a8ff}50%{text-shadow:0 0 30px #00a8ff,0 0 70px #0066cc,0 0 120px #003a7a}}
-.tag{color:rgba(255,255,255,0.55);font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-bottom:22px;text-align:center;max-width:380px}
+h1{font-size:44px;letter-spacing:5px;color:#f8f8ff;text-shadow:0 0 14px #00a8ff,0 0 36px #0066cc;animation:pulse 3s ease-in-out infinite;margin-bottom:4px;text-align:center}
+h2{font-size:22px;letter-spacing:3px;color:#fff;text-shadow:0 0 10px #00a8ff;margin-bottom:10px;text-align:center}
+@keyframes pulse{0%,100%{text-shadow:0 0 14px #00a8ff,0 0 32px #00a8ff}50%{text-shadow:0 0 22px #00a8ff,0 0 56px #0066cc}}
+.tag{color:rgba(255,255,255,0.55);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;text-align:center;max-width:320px}
 input,button{font-family:inherit}
-input{padding:12px 20px;font-size:16px;border:1.5px solid rgba(0,168,255,0.4);border-radius:30px;background:rgba(0,10,20,0.6);color:#fff;text-align:center;outline:none;width:280px;margin-bottom:14px;transition:border-color .2s,box-shadow .2s}
-input:focus{border-color:#00a8ff;box-shadow:0 0 15px rgba(0,168,255,0.3)}
-.btn{padding:14px 30px;font-size:17px;font-weight:bold;letter-spacing:2px;border:1.5px solid rgba(0,168,255,0.5);border-radius:30px;background:rgba(8,12,24,0.75);color:#fff;cursor:pointer;width:280px;margin-bottom:10px;transition:transform .15s,border-color .2s,box-shadow .2s}
-.btn:hover{transform:scale(1.04);border-color:#00a8ff;box-shadow:0 0 24px rgba(0,168,255,0.3)}
+input{padding:9px 16px;font-size:14px;border:1.5px solid rgba(0,168,255,0.4);border-radius:22px;background:rgba(0,10,20,0.6);color:#fff;text-align:center;outline:none;width:230px;margin-bottom:8px;transition:border-color .2s,box-shadow .2s}
+input.code{font-size:18px;letter-spacing:8px;text-transform:uppercase;font-weight:bold;padding:10px}
+input:focus{border-color:#00a8ff;box-shadow:0 0 12px rgba(0,168,255,0.3)}
+.btn{padding:10px 22px;font-size:14px;font-weight:bold;letter-spacing:2px;border:1.5px solid rgba(0,168,255,0.5);border-radius:22px;background:rgba(8,12,24,0.75);color:#fff;cursor:pointer;width:230px;margin-bottom:6px;transition:transform .15s,border-color .2s,box-shadow .2s}
+.btn:hover{transform:scale(1.04);border-color:#00a8ff;box-shadow:0 0 16px rgba(0,168,255,0.3)}
 .btn:active{transform:scale(.96)}
-.modes{display:flex;gap:10px;margin-bottom:12px}
-.mode{flex:1;padding:12px 14px;font-size:13px;font-weight:bold;letter-spacing:2px;border-radius:24px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(10,14,32,0.8);color:rgba(255,255,255,0.9);cursor:pointer;transition:all .2s;width:135px}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn.ghost{border-color:rgba(255,255,255,0.2);font-size:12px;padding:8px 18px}
+.btn.ghost:hover{border-color:rgba(255,255,255,0.5);box-shadow:none}
+.modes{display:flex;gap:6px;margin-bottom:8px;width:230px}
+.mode{flex:1;padding:9px 6px;font-size:11px;font-weight:bold;letter-spacing:2px;border-radius:18px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(10,14,32,0.8);color:rgba(255,255,255,0.9);cursor:pointer;transition:all .2s}
 .mode:hover{border-color:rgba(0,168,255,0.45)}
-.mode.active{border-color:#00a8ff;background:rgba(0,168,255,0.14);color:#fff;box-shadow:0 0 10px rgba(0,168,255,0.3)}
-.panel{width:min(360px,92vw);background:rgba(6,10,24,0.8);border:1px solid rgba(0,168,255,0.18);border-radius:18px;padding:14px 16px;margin-top:16px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.panel h3{font-size:12px;color:#00a8ff;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:10px}
-.row{display:flex;justify-content:space-between;font-size:14px;padding:3px 0;color:rgba(255,255,255,0.85);gap:8px}
-.row.me{color:#00e0ff;font-weight:bold;text-shadow:0 0 8px rgba(0,168,255,0.5)}
-.row .rank{width:22px;color:rgba(255,255,255,0.4);flex-shrink:0}
+.mode.active{border-color:#00a8ff;background:rgba(0,168,255,0.14);color:#fff}
+.panel{width:min(300px,92vw);background:rgba(6,10,24,0.8);border:1px solid rgba(0,168,255,0.18);border-radius:14px;padding:10px 12px;margin-top:12px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.panel h3{font-size:10px;color:#00a8ff;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:7px}
+.row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:rgba(255,255,255,0.85);gap:7px;align-items:center}
+.row.me{color:#00e0ff;font-weight:bold;text-shadow:0 0 6px rgba(0,168,255,0.5)}
+.row .rank{width:18px;color:rgba(255,255,255,0.4);flex-shrink:0;font-size:11px}
 .row .name{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row .mode-tag{font-size:9px;letter-spacing:1.5px;padding:1px 7px;border-radius:8px;background:rgba(0,168,255,0.15);color:#7ed4ff;text-transform:uppercase;flex-shrink:0;align-self:center}
-.row .mode-tag.space{background:rgba(255,180,80,0.15);color:#ffc070}
-.empty{color:rgba(255,255,255,0.4);text-align:center;padding:8px;font-size:13px}
-#hud{position:fixed;top:0;left:0;right:0;padding:22px 32px;z-index:15;display:none;justify-content:space-between;font-size:32px;font-weight:bold;letter-spacing:2px;text-shadow:0 0 12px rgba(0,168,255,0.7);pointer-events:none}
-#hud .label{font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:2px;font-weight:normal;text-shadow:none}
-#hint{position:fixed;bottom:36px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.45);font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:15;display:none;pointer-events:none;text-align:center}
+.row .mt{font-size:8px;letter-spacing:1px;padding:1px 5px;border-radius:5px;background:rgba(0,168,255,0.15);color:#7ed4ff;text-transform:uppercase;flex-shrink:0}
+.row .mt.space{background:rgba(255,180,80,0.15);color:#ffc070}
+.row .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+.empty{color:rgba(255,255,255,0.4);text-align:center;padding:5px;font-size:11px}
+.code-disp{font-size:30px;letter-spacing:10px;font-weight:bold;color:#00e0ff;text-shadow:0 0 14px rgba(0,168,255,0.6);margin:4px 0 12px;padding:8px 12px;background:rgba(0,168,255,0.06);border:1px dashed rgba(0,168,255,0.4);border-radius:12px;text-align:center}
+.status{font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:2px;text-transform:uppercase;margin-top:4px;text-align:center}
+#hud{position:fixed;top:0;left:0;right:0;padding:14px 22px;z-index:15;display:none;justify-content:space-between;font-size:22px;font-weight:bold;letter-spacing:2px;text-shadow:0 0 10px rgba(0,168,255,0.7);pointer-events:none}
+#hud .label{font-size:9px;color:rgba(255,255,255,0.5);letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:1px;font-weight:normal;text-shadow:none}
+#hint{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.45);font-size:10px;letter-spacing:2px;text-transform:uppercase;z-index:15;display:none;pointer-events:none;text-align:center}
 .hide{display:none!important}
-.pop{position:fixed;z-index:25;color:#00e0ff;font-size:20px;font-weight:bold;text-shadow:0 0 10px #00a8ff;pointer-events:none;animation:floatUp .55s ease-out forwards}
-@keyframes floatUp{to{transform:translate(-50%,-70px);opacity:0}}
-#count{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:180px;font-weight:bold;color:#fff;text-shadow:0 0 40px #00a8ff,0 0 80px #0066cc;pointer-events:none;z-index:30;display:none}
-.cursor-click{cursor:crosshair}
+.pop{position:fixed;z-index:25;color:#00e0ff;font-size:15px;font-weight:bold;text-shadow:0 0 6px #00a8ff;pointer-events:none;animation:floatUp .55s ease-out forwards}
+@keyframes floatUp{to{transform:translate(-50%,-46px);opacity:0}}
+#count{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px;font-weight:bold;color:#fff;text-shadow:0 0 30px #00a8ff,0 0 60px #0066cc;pointer-events:none;z-index:30;display:none}
+.back{position:fixed;top:14px;left:14px;z-index:40;background:rgba(8,12,24,0.7);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.7);border-radius:18px;padding:5px 12px;font-size:11px;cursor:pointer;letter-spacing:2px;font-weight:bold;display:none}
+.back:hover{color:#fff;border-color:#00a8ff}
 </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
-<div id="sphere"></div>
+<button class="back" id="back">← BACK</button>
+<div id="spheres"></div>
 <div id="count"></div>
 <div id="hud"><div><span class="label">Time</span><span id="time">10.0</span></div><div><span class="label">Score</span><span id="score">0</span></div></div>
 <div id="hint"></div>
 <div id="ui">
   <div id="menu">
     <h1>CLICK BATTLE</h1>
-    <p class="tag">10 seconds. Pick a mode. Spam as fast as you can.</p>
-    <input id="name" placeholder="Enter your name" maxlength="14" autofocus>
-    <div class="modes">
-      <button class="mode active" id="modeMouse" data-mode="mouse">MOUSE</button>
-      <button class="mode" id="modeSpace" data-mode="space">SPACEBAR</button>
-    </div>
-    <button class="btn" id="start">START</button>
-    <div class="panel"><h3>Top 10 — All Modes</h3><div id="board"></div></div>
+    <p class="tag">10 seconds. Spam to launch your sphere. Beat the board.</p>
+    <input id="name" placeholder="Your name" maxlength="14" autofocus>
+    <div class="modes"><button class="mode active" id="modeMouse">MOUSE</button><button class="mode" id="modeSpace">SPACEBAR</button></div>
+    <button class="btn" id="start">SOLO</button>
+    <button class="btn" id="mpBtn">MULTIPLAYER · UP TO 4P</button>
+    <div class="panel"><h3>Top 10 — This Browser</h3><div id="board"></div></div>
+  </div>
+  <div id="mpMenu" class="hide">
+    <h1>MULTIPLAYER</h1>
+    <p class="tag">Create a room and share the code, or join one.</p>
+    <input id="mpName" placeholder="Your name" maxlength="14">
+    <button class="btn" id="createBtn">CREATE ROOM</button>
+    <input id="codeInput" class="code" placeholder="CODE" maxlength="4">
+    <button class="btn" id="joinBtn">JOIN ROOM</button>
+    <div id="mpError" class="status" style="color:#ff7070;min-height:14px"></div>
+  </div>
+  <div id="lobby" class="hide">
+    <h2>ROOM</h2>
+    <div class="code-disp" id="lobbyCode">----</div>
+    <div class="panel" style="margin-top:0"><h3>Players · <span id="lobbyCount">0</span>/4</h3><div id="lobbyList"></div></div>
+    <button class="btn" id="hostStart" style="margin-top:14px;display:none">START GAME</button>
+    <div class="status" id="hostHint" style="display:none">Waiting for host…</div>
   </div>
   <div id="over" class="hide">
     <h1 id="finalText">0</h1>
     <p class="tag" id="resultTag">CLICKS · MOUSE</p>
     <button class="btn" id="again">PLAY AGAIN</button>
-    <div class="panel"><h3>Live Leaderboard</h3><div id="board2"></div></div>
+    <button class="btn ghost" id="overBack">BACK TO MENU</button>
+    <div class="panel"><h3 id="overTitle">Live Leaderboard</h3><div id="board2"></div></div>
   </div>
 </div>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
-const bg = $('bg'), bctx = bg.getContext('2d'), sphere = $('sphere'), hud = $('hud'), menu = $('menu'), over = $('over'), count = $('count'), hint = $('hint');
-let stars = [], W = 0, H = 0, score = 0, t = 0, running = false, mode = localStorage.getItem('cb_mode') || 'mouse';
+const bg = $('bg'), bctx = bg.getContext('2d'), hud = $('hud'), count = $('count'), hint = $('hint'), spheresEl = $('spheres');
+const COLORS = ['#00a8ff', '#ff5577', '#ffd84d', '#5eff9a'];
+const R = 18, GRAVITY = 1400, BOOST = 260, VY_MAX = 750;
+let stars = [], W = 0, H = 0, t = 0, running = false;
+let mode = localStorage.getItem('cb_mode') || 'mouse';
+let view = 'menu', isMP = false, myId = null, ws = null;
+const players = new Map(); // id → {id,name,color,slot,score,y,vy,x,el,scrEl,hitT,isMe}
 
 function resize() {
   W = bg.width = innerWidth; H = bg.height = innerHeight;
-  if (!stars.length) for (let i = 0; i < 150; i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+0.3,s:Math.random()*0.4+0.05,p:Math.random()*6.28});
+  if (!stars.length) for (let i = 0; i < 180; i++) stars.push({x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.4+0.3, d:0.3+Math.random()*0.7, p:Math.random()*6.28});
+  for (const p of players.values()) p.x = sphereX(p.slot);
 }
 addEventListener('resize', resize); resize();
 
+function sphereX(slot) { return isMP ? W * (slot * 2 + 1) / 8 : W / 2; }
+
 function drawBg(dt) {
-  bctx.fillStyle = 'rgba(2,4,10,0.32)'; bctx.fillRect(0,0,W,H);
+  const me = players.get(myId);
+  const speed = 60 - (me && running ? me.vy * 0.6 : 0);
+  bctx.fillStyle = 'rgba(2,4,10,0.30)'; bctx.fillRect(0, 0, W, H);
   for (const s of stars) {
-    s.y += s.s * 28 * dt; if (s.y > H) { s.y = 0; s.x = Math.random()*W; }
+    s.y += speed * s.d * dt;
+    if (s.y > H + 4) { s.y = -4; s.x = Math.random()*W; }
+    if (s.y < -4)    { s.y = H + 4; s.x = Math.random()*W; }
     s.p += dt * 2;
-    bctx.fillStyle = `rgba(140,200,255,${0.35 + 0.55 * Math.abs(Math.sin(s.p))})`;
-    bctx.beginPath(); bctx.arc(s.x, s.y, s.r, 0, 6.283); bctx.fill();
+    bctx.fillStyle = `rgba(150,210,255,${(0.2+0.6*Math.abs(Math.sin(s.p)))*(0.5+s.d*0.5)})`;
+    bctx.beginPath(); bctx.arc(s.x, s.y, s.r*(0.4+s.d*0.8), 0, 6.283); bctx.fill();
   }
 }
+
+function makeSphereEl(p) {
+  const el = document.createElement('div');
+  el.className = 'sphere';
+  el.style.background = `radial-gradient(circle at 32% 30%,#fff,${p.color} 45%,#001a3a)`;
+  el.style.boxShadow = `0 0 18px ${p.color},0 0 38px ${p.color}66,inset -5px -5px 12px rgba(0,0,0,0.45)`;
+  el.innerHTML = `<div class="lbl">${esc(p.name)}</div><div class="scr">0</div>`;
+  spheresEl.appendChild(el);
+  p.el = el; p.scrEl = el.querySelector('.scr');
+}
+function clearSpheres() { spheresEl.innerHTML = ''; for (const p of players.values()) { p.el = null; p.scrEl = null; } }
+function pulse(p) { if (!p.el) return; p.el.classList.add('hit'); clearTimeout(p.hitT); p.hitT = setTimeout(() => p.el && p.el.classList.remove('hit'), 70); }
 
 let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.05); last = now;
   drawBg(dt);
+  for (const p of players.values()) {
+    if (running) {
+      if (p.isMe) {
+        p.vy += GRAVITY * dt;
+      } else {
+        p.vy += GRAVITY * dt * 0.6; // local fudge between server ticks
+      }
+      if (p.vy > VY_MAX) p.vy = VY_MAX;
+      if (p.vy < -VY_MAX) p.vy = -VY_MAX;
+      p.y += p.vy * dt;
+      if (p.y > H - R) { p.y = H - R; if (p.vy > 0) p.vy = 0; }
+      if (p.y < R)     { p.y = R;     if (p.vy < 0) p.vy = 0; }
+    }
+    if (p.el) {
+      p.el.style.left = (p.x - R) + 'px';
+      p.el.style.top  = ((p.y || H * 0.6) - R) + 'px';
+      if (p.scrEl) p.scrEl.textContent = p.score;
+    }
+  }
   if (running) {
     t -= dt;
     if (t <= 0) { t = 0; end(); }
@@ -105,50 +175,86 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 
-let hitTimer = 0;
-function hit(x, y) {
+function localClick() {
   if (!running) return;
-  score++;
-  $('score').textContent = score;
-  sphere.classList.add('hit');
-  clearTimeout(hitTimer);
-  hitTimer = setTimeout(() => sphere.classList.remove('hit'), 70);
-  spawnPop(x, y);
+  const me = players.get(myId); if (!me) return;
+  me.score++;
+  me.vy -= BOOST;
+  if (me.vy < -VY_MAX) me.vy = -VY_MAX;
+  pulse(me);
+  $('score').textContent = me.score;
+  spawnPop(me.x, me.y - R - 6);
 }
 
 addEventListener('pointerdown', e => {
-  if (running && mode === 'mouse') hit(e.clientX, e.clientY);
+  if (!running || mode !== 'mouse') return;
+  if (e.target.closest('button,input')) return;
+  localClick();
 });
 addEventListener('keydown', e => {
-  if (e.code === 'Space') {
-    e.preventDefault();
-    if (running && mode === 'space' && !e.repeat) {
-      const r = sphere.getBoundingClientRect();
-      hit(r.left + r.width/2, r.top + r.height/2);
-    }
-  }
+  if (e.code !== 'Space') return;
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  e.preventDefault();
+  if (running && mode === 'space' && !e.repeat) localClick();
 });
 
 function spawnPop(x, y) {
   const el = document.createElement('div');
   el.className = 'pop'; el.textContent = '+1';
-  el.style.left = x + 'px'; el.style.top = (y - 10) + 'px';
+  el.style.left = x + 'px'; el.style.top = y + 'px';
   el.style.transform = 'translate(-50%,0)';
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 600);
 }
 
-async function start() {
-  const name = ($('name').value.trim() || 'Player').slice(0, 14);
-  localStorage.setItem('cb_name', name);
-  localStorage.setItem('cb_mode', mode);
-  menu.classList.add('hide'); over.classList.add('hide');
-  score = 0;
-  sphere.style.display = 'block';
-  for (const n of ['3','2','1','GO']) {
-    count.textContent = n; count.style.display = 'block';
-    await sleep(550);
+// --- View transitions ---
+function hideAllUI() { for (const id of ['menu','mpMenu','lobby','over']) $(id).classList.add('hide'); }
+function setBack(show) { $('back').style.display = show ? 'block' : 'none'; }
+
+function showMenu() {
+  view = 'menu'; hideAllUI(); $('menu').classList.remove('hide');
+  setBack(false); hud.style.display = 'none'; hint.style.display = 'none';
+  clearSpheres(); players.clear();
+  if (ws) { ws.close(); ws = null; }
+  isMP = false; running = false; document.body.style.cursor = 'default';
+  renderLocalBoard('board');
+}
+function showMpMenu() {
+  view = 'mp'; hideAllUI(); $('mpMenu').classList.remove('hide');
+  setBack(true);
+  $('mpName').value = localStorage.getItem('cb_name') || '';
+  $('mpError').textContent = '';
+}
+function showLobby(room) {
+  view = 'lobby'; hideAllUI(); $('lobby').classList.remove('hide');
+  setBack(true); updateLobby(room);
+}
+function updateLobby(room) {
+  $('lobbyCode').textContent = room.code;
+  $('lobbyCount').textContent = room.players.length;
+  $('lobbyList').innerHTML = room.players.map(p =>
+    `<div class="row${p.id===myId?' me':''}"><span class="dot" style="background:${p.color};color:${p.color}"></span><span class="name">${esc(p.name)}${p.id===room.hostId?' <span style="font-size:8px;color:rgba(255,255,255,0.5);letter-spacing:1px;margin-left:4px">HOST</span>':''}</span></div>`
+  ).join('');
+  const isHost = room.hostId === myId;
+  $('hostStart').style.display = isHost ? 'block' : 'none';
+  $('hostHint').style.display = isHost ? 'none' : 'block';
+}
+
+async function startGame() {
+  view = 'playing'; hideAllUI(); setBack(false);
+  clearSpheres();
+  if (!isMP) {
+    players.clear();
+    const me = { id:'me', name:($('name').value.trim()||'Player').slice(0,14), color:COLORS[0], slot:0, score:0, y:H*0.65, vy:0, isMe:true };
+    me.x = sphereX(0);
+    players.set('me', me); myId = 'me';
+    localStorage.setItem('cb_name', me.name);
+    localStorage.setItem('cb_mode', mode);
+  } else {
+    for (const p of players.values()) { p.score = 0; p.y = H * 0.65; p.vy = 0; p.x = sphereX(p.slot); }
   }
+  for (const p of players.values()) makeSphereEl(p);
+  for (const n of ['3','2','1','GO']) { count.textContent = n; count.style.display = 'block'; await sleep(550); }
   count.style.display = 'none';
   t = 10.0; running = true;
   $('score').textContent = '0';
@@ -160,32 +266,43 @@ async function start() {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function end() {
-  running = false;
-  hud.style.display = 'none'; hint.style.display = 'none'; sphere.style.display = 'none';
+  running = false; hud.style.display = 'none'; hint.style.display = 'none';
   document.body.style.cursor = 'default';
-  const name = localStorage.getItem('cb_name') || 'Player';
-  const at = Date.now();
-  const scores = JSON.parse(localStorage.getItem('cb_scores') || '[]');
-  scores.push({ name, score, mode, at });
-  scores.sort((a, b) => b.score - a.score);
-  localStorage.setItem('cb_scores', JSON.stringify(scores.slice(0, 50)));
-  $('finalText').textContent = score;
-  $('resultTag').textContent = `${score === 1 ? (mode==='mouse'?'CLICK':'PRESS') : (mode==='mouse'?'CLICKS':'PRESSES')} · ${mode.toUpperCase()}`;
-  renderBoard('board2', { name, score, mode, at });
-  over.classList.remove('hide');
+  view = 'over'; hideAllUI(); $('over').classList.remove('hide'); setBack(true);
+  const me = players.get(myId);
+  const myScore = me ? me.score : 0;
+  if (!isMP) {
+    const name = me.name, at = Date.now();
+    const all = JSON.parse(localStorage.getItem('cb_scores') || '[]');
+    all.push({ name, score: myScore, mode, at });
+    all.sort((a,b) => b.score - a.score);
+    localStorage.setItem('cb_scores', JSON.stringify(all.slice(0, 50)));
+    $('finalText').textContent = myScore;
+    $('resultTag').textContent = `${myScore===1?(mode==='mouse'?'CLICK':'PRESS'):(mode==='mouse'?'CLICKS':'PRESSES')} · ${mode.toUpperCase()}`;
+    $('overTitle').textContent = 'Live Leaderboard';
+    renderLocalBoard('board2', { name, score: myScore, mode, at });
+  } else {
+    $('finalText').textContent = myScore;
+    $('resultTag').textContent = 'CLICKS · MULTIPLAYER';
+    $('overTitle').textContent = 'Final Standings';
+    const list = [...players.values()].sort((a,b) => b.score - a.score);
+    $('board2').innerHTML = list.map((p,i) =>
+      `<div class="row${p.id===myId?' me':''}"><span class="rank">${i+1}</span><span class="dot" style="background:${p.color};color:${p.color}"></span><span class="name">${esc(p.name)}</span><span>${p.score}</span></div>`
+    ).join('');
+  }
+  clearSpheres();
 }
 
-function renderBoard(targetId, hl) {
+function renderLocalBoard(targetId, hl) {
   const scores = JSON.parse(localStorage.getItem('cb_scores') || '[]').slice(0, 10);
   const el = $(targetId);
   if (!scores.length) { el.innerHTML = '<div class="empty">No scores yet — be the first!</div>'; return; }
   el.innerHTML = scores.map((s, i) => {
     const me = hl && s.score === hl.score && s.name === hl.name && s.at === hl.at && s.mode === hl.mode;
-    const tag = `<span class="mode-tag${s.mode==='space'?' space':''}">${s.mode||'mouse'}</span>`;
-    return `<div class="row${me?' me':''}"><span class="rank">${i+1}</span><span class="name">${esc(s.name)}</span>${tag}<span>${s.score}</span></div>`;
+    return `<div class="row${me?' me':''}"><span class="rank">${i+1}</span><span class="name">${esc(s.name)}</span><span class="mt${s.mode==='space'?' space':''}">${s.mode||'mouse'}</span><span>${s.score}</span></div>`;
   }).join('');
 }
-const esc = s => s.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const esc = s => String(s).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 
 function setMode(m) {
   mode = m;
@@ -194,13 +311,86 @@ function setMode(m) {
   localStorage.setItem('cb_mode', m);
 }
 setMode(mode);
+
+// --- Multiplayer (WebSocket) ---
+const SERVER_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? `ws://${location.hostname}:3000`
+  : 'wss://click-battle.onrender.com';
+
+function connect(action, code) {
+  if (ws) { try { ws.close(); } catch {} ws = null; }
+  const name = ($('mpName').value.trim() || 'Player').slice(0, 14);
+  localStorage.setItem('cb_name', name);
+  $('mpError').textContent = 'Connecting…';
+  try { ws = new WebSocket(SERVER_URL); }
+  catch { $('mpError').textContent = 'Server offline — try Solo'; return; }
+  ws.onopen = () => ws.send(JSON.stringify({ type: action, code, name }));
+  ws.onmessage = ev => { try { handleMsg(JSON.parse(ev.data)); } catch {} };
+  ws.onerror = () => { $('mpError').textContent = 'Server offline — Solo still works!'; };
+  ws.onclose = () => {
+    if (view === 'mp') $('mpError').textContent = $('mpError').textContent || 'Disconnected';
+    if (view === 'lobby' || view === 'playing' || view === 'over') showMpMenu();
+  };
+}
+
+function handleMsg(m) {
+  if (m.type === 'error') { $('mpError').textContent = m.error; }
+  else if (m.type === 'joined') { myId = m.selfId; isMP = true; syncPlayers(m.room); showLobby(m.room); }
+  else if (m.type === 'room')   { syncPlayers(m.room); if (view === 'lobby') updateLobby(m.room); }
+  else if (m.type === 'start')  { startGame(); }
+  else if (m.type === 'tick')   {
+    for (const ps of m.players) {
+      const p = players.get(ps.id);
+      if (p && !p.isMe) { p.score = ps.score; p.y += (ps.y - p.y) * 0.4; p.vy = ps.vy || 0; }
+    }
+  }
+  else if (m.type === 'finished') { syncPlayers(m.room); end(); }
+}
+
+function syncPlayers(room) {
+  for (const id of [...players.keys()]) if (!room.players.find(p => p.id === id)) players.delete(id);
+  for (const ps of room.players) {
+    let p = players.get(ps.id);
+    if (!p) { p = { id: ps.id, score: ps.score || 0, y: H * 0.6, vy: 0, isMe: ps.id === myId }; players.set(ps.id, p); }
+    p.name = ps.name; p.color = ps.color; p.slot = ps.slot; p.x = sphereX(p.slot);
+  }
+}
+
+let lastSent = 0;
+setInterval(() => {
+  if (!isMP || !running || !ws || ws.readyState !== 1) return;
+  const now = performance.now(); if (now - lastSent < 70) return; lastSent = now;
+  const me = players.get(myId); if (!me) return;
+  ws.send(JSON.stringify({ type: 'state', score: me.score, y: me.y, vy: me.vy }));
+}, 70);
+
+// --- Wire up ---
+$('name').value = localStorage.getItem('cb_name') || '';
+$('start').addEventListener('click', () => { isMP = false; startGame(); });
 $('modeMouse').addEventListener('click', () => setMode('mouse'));
 $('modeSpace').addEventListener('click', () => setMode('space'));
-$('name').value = localStorage.getItem('cb_name') || '';
-$('start').addEventListener('click', start);
-$('again').addEventListener('click', start);
-$('name').addEventListener('keydown', e => { if (e.key === 'Enter') start(); });
-renderBoard('board');
+$('mpBtn').addEventListener('click', showMpMenu);
+$('back').addEventListener('click', () => {
+  if (view === 'mp') showMenu();
+  else if (view === 'lobby' || view === 'over') showMenu();
+});
+$('createBtn').addEventListener('click', () => connect('create'));
+$('joinBtn').addEventListener('click', () => {
+  const code = $('codeInput').value.trim().toUpperCase();
+  if (code.length !== 4) { $('mpError').textContent = 'Code must be 4 characters'; return; }
+  connect('join', code);
+});
+$('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('joinBtn').click(); });
+$('hostStart').addEventListener('click', () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'start' })); });
+$('again').addEventListener('click', () => {
+  if (isMP && ws && ws.readyState === 1) {
+    view = 'lobby'; hideAllUI(); $('lobby').classList.remove('hide'); setBack(true);
+    for (const p of players.values()) p.score = 0;
+  } else { startGame(); }
+});
+$('overBack').addEventListener('click', showMenu);
+$('name').addEventListener('keydown', e => { if (e.key === 'Enter') $('start').click(); });
+renderLocalBoard('board');
 </script>
 </body>
 </html>
