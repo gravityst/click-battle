@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Click Battle</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><radialGradient id='g' cx='35%25' cy='35%25'><stop offset='0' stop-color='%239ee9ff'/><stop offset='0.5' stop-color='%2300a8ff'/><stop offset='1' stop-color='%23003a7a'/></radialGradient></defs><circle cx='16' cy='16' r='14' fill='url(%23g)'/></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:radial-gradient(circle at top,#091123 0%,#02030a 55%,#03020f 100%);overflow:hidden;font-family:-apple-system,'Segoe UI',sans-serif;color:#f7f7ff;height:100vh;user-select:none;-webkit-user-select:none;cursor:crosshair}
+#bg{position:fixed;inset:0;z-index:0;width:100%;height:100%}
+#sphere{position:fixed;z-index:20;width:90px;height:90px;border-radius:50%;cursor:pointer;background:radial-gradient(circle at 32% 30%,#dff5ff 0%,#00a8ff 45%,#003a7a 100%);box-shadow:0 0 40px #00a8ff,0 0 80px rgba(0,168,255,0.4),inset -10px -10px 28px rgba(0,0,0,0.45);transition:transform .07s ease-out;display:none;will-change:transform,left,top}
+#sphere:active{transform:scale(.85)}
+#ui{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;pointer-events:none}
+#ui>*{pointer-events:auto}
+h1{font-size:64px;letter-spacing:6px;color:#f8f8ff;text-shadow:0 0 18px #00a8ff,0 0 48px #0066cc;animation:pulse 3s ease-in-out infinite;margin-bottom:6px;text-align:center}
+@keyframes pulse{0%,100%{text-shadow:0 0 20px #00a8ff,0 0 40px #00a8ff}50%{text-shadow:0 0 30px #00a8ff,0 0 70px #0066cc,0 0 120px #003a7a}}
+.tag{color:rgba(255,255,255,0.55);font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-bottom:22px;text-align:center}
+input,button{font-family:inherit}
+input{padding:12px 20px;font-size:16px;border:1.5px solid rgba(0,168,255,0.4);border-radius:30px;background:rgba(0,10,20,0.6);color:#fff;text-align:center;outline:none;width:280px;margin-bottom:12px;transition:border-color .2s,box-shadow .2s}
+input:focus{border-color:#00a8ff;box-shadow:0 0 15px rgba(0,168,255,0.3)}
+.btn{padding:14px 40px;font-size:18px;font-weight:bold;letter-spacing:2px;border:1.5px solid rgba(0,168,255,0.5);border-radius:30px;background:rgba(8,12,24,0.75);color:#fff;cursor:pointer;width:280px;transition:transform .15s,border-color .2s,box-shadow .2s}
+.btn:hover{transform:scale(1.04);border-color:#00a8ff;box-shadow:0 0 24px rgba(0,168,255,0.3)}
+.btn:active{transform:scale(.96)}
+.panel{width:min(340px,90vw);background:rgba(6,10,24,0.8);border:1px solid rgba(0,168,255,0.18);border-radius:18px;padding:14px 16px;margin-top:18px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.panel h3{font-size:12px;color:#00a8ff;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;font-size:14px;padding:3px 0;color:rgba(255,255,255,0.85)}
+.row.me{color:#00e0ff;font-weight:bold;text-shadow:0 0 8px rgba(0,168,255,0.5)}
+.row .rank{width:24px;color:rgba(255,255,255,0.4)}
+.row .name{flex:1;text-align:left;padding-left:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{color:rgba(255,255,255,0.4);text-align:center;padding:8px;font-size:13px}
+#hud{position:fixed;top:0;left:0;right:0;padding:22px 32px;z-index:15;display:none;justify-content:space-between;font-size:32px;font-weight:bold;letter-spacing:2px;text-shadow:0 0 12px rgba(0,168,255,0.7);pointer-events:none}
+#hud .label{font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:2px;font-weight:normal;text-shadow:none}
+.hide{display:none!important}
+.pop{position:fixed;z-index:25;color:#00e0ff;font-size:22px;font-weight:bold;text-shadow:0 0 10px #00a8ff;pointer-events:none;animation:floatUp .6s ease-out forwards}
+@keyframes floatUp{to{transform:translateY(-60px);opacity:0}}
+#count{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:180px;font-weight:bold;color:#fff;text-shadow:0 0 40px #00a8ff,0 0 80px #0066cc;pointer-events:none;z-index:30;display:none}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="sphere"></div>
+<div id="count"></div>
+<div id="hud"><div><span class="label">Time</span><span id="time">10.0</span></div><div><span class="label">Score</span><span id="score">0</span></div></div>
+<div id="ui">
+  <div id="menu">
+    <h1>CLICK BATTLE</h1>
+    <p class="tag">10 seconds. Catch the flying sphere. Beat the leaderboard.</p>
+    <input id="name" placeholder="Enter your name" maxlength="14" autofocus>
+    <button class="btn" id="start">START</button>
+    <div class="panel"><h3>Top 10 — This Browser</h3><div id="board"></div></div>
+  </div>
+  <div id="over" class="hide">
+    <h1 id="finalText">0</h1>
+    <p class="tag" id="resultTag">CLICKS</p>
+    <button class="btn" id="again">PLAY AGAIN</button>
+    <div class="panel"><h3>Live Leaderboard</h3><div id="board2"></div></div>
+  </div>
+</div>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const bg = $('bg'), bctx = bg.getContext('2d'), sphere = $('sphere'), hud = $('hud'), menu = $('menu'), over = $('over'), count = $('count');
+const R = 45;
+let stars = [], W = 0, H = 0, score = 0, t = 0, running = false;
+let sx = 0, sy = 0, vx = 0, vy = 0, lastClickId = null;
+
+function resize() {
+  W = bg.width = innerWidth; H = bg.height = innerHeight;
+  if (!stars.length) for (let i = 0; i < 150; i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+0.3,s:Math.random()*0.4+0.05,p:Math.random()*6.28});
+}
+addEventListener('resize', resize); resize();
+
+function drawBg(dt) {
+  bctx.fillStyle = 'rgba(2,4,10,0.32)'; bctx.fillRect(0,0,W,H);
+  for (const s of stars) {
+    s.y += s.s * 28 * dt; if (s.y > H) { s.y = 0; s.x = Math.random()*W; }
+    s.p += dt * 2;
+    bctx.fillStyle = `rgba(140,200,255,${0.35 + 0.55 * Math.abs(Math.sin(s.p))})`;
+    bctx.beginPath(); bctx.arc(s.x, s.y, s.r, 0, 6.283); bctx.fill();
+  }
+}
+
+function paintSphere() {
+  sphere.style.left = (sx - R) + 'px';
+  sphere.style.top = (sy - R) + 'px';
+}
+
+function launch(boost) {
+  const a = Math.random() * 6.283;
+  const sp = 280 + score * 18 + (boost ? 60 : 0);
+  vx = Math.cos(a) * sp; vy = Math.sin(a) * sp;
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.05); last = now;
+  drawBg(dt);
+  if (running) {
+    t -= dt;
+    if (t <= 0) { t = 0; end(); }
+    else {
+      sx += vx * dt; sy += vy * dt;
+      if (sx < R) { sx = R; vx = Math.abs(vx); }
+      if (sx > W - R) { sx = W - R; vx = -Math.abs(vx); }
+      if (sy < R) { sy = R; vy = Math.abs(vy); }
+      if (sy > H - R) { sy = H - R; vy = -Math.abs(vy); }
+      paintSphere();
+      $('time').textContent = t.toFixed(1);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+sphere.addEventListener('pointerdown', e => {
+  if (!running || e.pointerId === lastClickId) return;
+  lastClickId = e.pointerId;
+  setTimeout(() => { if (lastClickId === e.pointerId) lastClickId = null; }, 50);
+  score++;
+  $('score').textContent = score;
+  spawnPop(sx, sy, '+1');
+  sx = R + 40 + Math.random() * (W - 2*R - 80);
+  sy = R + 80 + Math.random() * (H - 2*R - 160);
+  launch(true);
+});
+
+function spawnPop(x, y, text) {
+  const el = document.createElement('div');
+  el.className = 'pop'; el.textContent = text;
+  el.style.left = (x - 14) + 'px'; el.style.top = (y - 14) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 600);
+}
+
+async function start() {
+  const name = ($('name').value.trim() || 'Player').slice(0, 14);
+  localStorage.setItem('cb_name', name);
+  menu.classList.add('hide'); over.classList.add('hide');
+  sx = W / 2; sy = H / 2; score = 0; launch(false);
+  paintSphere();
+  for (const n of ['3','2','1','GO']) {
+    count.textContent = n; count.style.display = 'block';
+    await sleep(550);
+  }
+  count.style.display = 'none';
+  t = 10.0; running = true;
+  $('score').textContent = '0';
+  hud.style.display = 'flex'; sphere.style.display = 'block';
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function end() {
+  running = false;
+  hud.style.display = 'none'; sphere.style.display = 'none';
+  const name = localStorage.getItem('cb_name') || 'Player';
+  const at = Date.now();
+  const scores = JSON.parse(localStorage.getItem('cb_scores') || '[]');
+  scores.push({ name, score, at });
+  scores.sort((a, b) => b.score - a.score);
+  localStorage.setItem('cb_scores', JSON.stringify(scores.slice(0, 50)));
+  $('finalText').textContent = score;
+  $('resultTag').textContent = score === 1 ? 'CLICK' : 'CLICKS';
+  renderBoard('board2', { name, score, at });
+  over.classList.remove('hide');
+}
+
+function renderBoard(targetId, hl) {
+  const scores = JSON.parse(localStorage.getItem('cb_scores') || '[]').slice(0, 10);
+  const el = $(targetId);
+  if (!scores.length) { el.innerHTML = '<div class="empty">No scores yet — be the first!</div>'; return; }
+  el.innerHTML = scores.map((s, i) => {
+    const me = hl && s.score === hl.score && s.name === hl.name && s.at === hl.at;
+    return `<div class="row${me?' me':''}"><span class="rank">${i+1}</span><span class="name">${esc(s.name)}</span><span>${s.score}</span></div>`;
+  }).join('');
+}
+const esc = s => s.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+$('name').value = localStorage.getItem('cb_name') || '';
+$('start').addEventListener('click', start);
+$('again').addEventListener('click', start);
+$('name').addEventListener('keydown', e => { if (e.key === 'Enter') start(); });
+renderBoard('board');
+</script>
+</body>
+</html>
