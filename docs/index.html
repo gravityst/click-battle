@@ -109,14 +109,17 @@ input:focus{border-color:#00a8ff;box-shadow:0 0 12px rgba(0,168,255,0.3)}
 const $ = id => document.getElementById(id);
 const bg = $('bg'), bctx = bg.getContext('2d'), hud = $('hud'), count = $('count'), hint = $('hint'), spheresEl = $('spheres');
 const COLORS = ['#00a8ff', '#ff5577', '#ffd84d', '#5eff9a'];
-// Physics (world units; +worldY = up). Each click pushes vy upward; gravity always drags toward 0.
-const R = 18, GRAVITY = 380, BOOST = 55, VY_MAX = 650;
+// Altitude is driven directly by current click rate so the faster clicker
+// is *always* higher than the slower one, with no caps and no break-even.
+// Each player tracks recent click timestamps; CPS = clicks-in-window / window.
+const R = 18, CPS_WINDOW = 1.0, HEIGHT_PER_CPS = 65;
+const RISE_RATE = 8, FALL_RATE = 4;
 const GROUND_PAD = 60, HEAD_PAD = 90;
 let stars = [], W = 0, H = 0, t = 0, running = false;
 let viewWorldY = 0, prevView = 0; // camera "bottom of view" in world units
 let mode = localStorage.getItem('cb_mode') || 'mouse';
 let view = 'menu', isMP = false, myId = null, ws = null;
-const players = new Map(); // id → {id,name,color,slot,score,worldY,vy,x,el,scrEl,hitT,isMe}
+const players = new Map(); // id → {id,name,color,slot,score,worldY,clickTimes,targetY,x,el,scrEl,hitT,isMe}
 
 function resize() {
   W = bg.width = innerWidth; H = bg.height = innerHeight;
@@ -171,12 +174,25 @@ let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.05); last = now;
   if (running) {
+    const tNow = now / 1000;
+    const me = players.get(myId);
+    if (me) {
+      // Trim click times outside the CPS window, then translate CPS → target altitude.
+      while (me.clickTimes && me.clickTimes.length && me.clickTimes[0] < tNow - CPS_WINDOW) me.clickTimes.shift();
+      const cps = me.clickTimes ? me.clickTimes.length / CPS_WINDOW : 0;
+      const target = cps * HEIGHT_PER_CPS;
+      const diff = target - me.worldY;
+      const rate = diff > 0 ? RISE_RATE : FALL_RATE;
+      me.worldY += diff * Math.min(1, rate * dt);
+      if (me.worldY < 0) me.worldY = 0;
+    }
+    // Other players' worldY is updated via the server tick (handleMsg), with a
+    // light lerp here for between-tick smoothness.
     for (const p of players.values()) {
-      p.vy -= GRAVITY * dt; // gravity always pulls upward velocity down
-      if (p.vy > VY_MAX) p.vy = VY_MAX;
-      if (p.vy < -VY_MAX) p.vy = -VY_MAX;
-      p.worldY += p.vy * dt;
-      if (p.worldY < 0) { p.worldY = 0; if (p.vy < 0) p.vy = 0; }
+      if (!p.isMe && p.targetY !== undefined) {
+        p.worldY += (p.targetY - p.worldY) * Math.min(1, 8 * dt);
+        if (p.worldY < 0) p.worldY = 0;
+      }
     }
     t -= dt;
     if (t <= 0) { t = 0; end(); }
@@ -205,8 +221,8 @@ function localClick() {
   if (!running) return;
   const me = players.get(myId); if (!me) return;
   me.score++;
-  me.vy += BOOST;
-  if (me.vy > VY_MAX) me.vy = VY_MAX;
+  if (!me.clickTimes) me.clickTimes = [];
+  me.clickTimes.push(performance.now() / 1000);
   pulse(me);
   $('score').textContent = me.score;
   const sy = H - GROUND_PAD - (me.worldY - viewWorldY);
@@ -275,13 +291,13 @@ async function startGame() {
   viewWorldY = 0; prevView = 0;
   if (!isMP) {
     players.clear();
-    const me = { id:'me', name:($('name').value.trim()||'Player').slice(0,14), color:COLORS[0], slot:0, score:0, worldY:0, vy:0, isMe:true };
+    const me = { id:'me', name:($('name').value.trim()||'Player').slice(0,14), color:COLORS[0], slot:0, score:0, worldY:0, clickTimes:[], isMe:true };
     me.x = sphereX(0);
     players.set('me', me); myId = 'me';
     localStorage.setItem('cb_name', me.name);
     localStorage.setItem('cb_mode', mode);
   } else {
-    for (const p of players.values()) { p.score = 0; p.worldY = 0; p.vy = 0; p.x = sphereX(p.slot); }
+    for (const p of players.values()) { p.score = 0; p.worldY = 0; p.clickTimes = []; p.targetY = 0; p.x = sphereX(p.slot); }
   }
   for (const p of players.values()) makeSphereEl(p);
   for (const n of ['3','2','1','GO']) { count.textContent = n; count.style.display = 'block'; await sleep(550); }
@@ -410,7 +426,7 @@ function handleMsg(m) {
   else if (m.type === 'tick')   {
     for (const ps of m.players) {
       const p = players.get(ps.id);
-      if (p && !p.isMe) { p.score = ps.score; p.worldY += (ps.y - p.worldY) * 0.4; p.vy = ps.vy || 0; }
+      if (p && !p.isMe) { p.score = ps.score; p.targetY = ps.y; }
     }
   }
   else if (m.type === 'finished') { syncPlayers(m.room); end(); }
@@ -420,7 +436,7 @@ function syncPlayers(room) {
   for (const id of [...players.keys()]) if (!room.players.find(p => p.id === id)) players.delete(id);
   for (const ps of room.players) {
     let p = players.get(ps.id);
-    if (!p) { p = { id: ps.id, score: ps.score || 0, worldY: 0, vy: 0, isMe: ps.id === myId }; players.set(ps.id, p); }
+    if (!p) { p = { id: ps.id, score: ps.score || 0, worldY: 0, targetY: 0, isMe: ps.id === myId }; players.set(ps.id, p); }
     p.name = ps.name; p.color = ps.color; p.slot = ps.slot; p.x = sphereX(p.slot);
   }
 }
@@ -430,7 +446,7 @@ setInterval(() => {
   if (!isMP || !running || !ws || ws.readyState !== 1) return;
   const now = performance.now(); if (now - lastSent < 70) return; lastSent = now;
   const me = players.get(myId); if (!me) return;
-  ws.send(JSON.stringify({ type: 'state', score: me.score, y: me.worldY, vy: me.vy }));
+  ws.send(JSON.stringify({ type: 'state', score: me.score, y: me.worldY }));
 }, 70);
 
 // --- Wire up ---
